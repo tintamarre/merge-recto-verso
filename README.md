@@ -11,6 +11,7 @@ uv run main.py recto.pdf verso.pdf
 ## How it works
 
 The script:
+
 1. Reads both PDF files (recto and verso)
 2. Verifies they have the same number of pages
 3. Reverses the verso pages (since they're typically scanned in reverse order)
@@ -23,6 +24,7 @@ The script:
 - [uv](https://github.com/astral-sh/uv) (for dependency management)
 
 Dependencies are managed via inline script metadata:
+
 - PyPDF2
 - rich
 - python-slugify
@@ -38,6 +40,7 @@ This will create a file like `combined-front-pages-back-pages.pdf` with all page
 ## Output
 
 The script displays:
+
 - Number of pages being merged
 - Output filename
 - Total file size and page count
