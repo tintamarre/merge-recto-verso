@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Merge Recto Verso</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366f1',
+                        secondary: '#8b5cf6'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div id="app" class="min-h-screen flex items-center justify-center p-4">
+        <div class="w-full max-w-xl">
+            <!-- Header -->
+            <div class="text-center mb-8">
+                <h1 class="text-4xl font-bold text-white mb-2">Merge Recto Verso</h1>
+                <p class="text-slate-400">Combine front and back scanned pages into a single PDF</p>
+            </div>
+
+            <!-- Main Card -->
+            <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-8 shadow-2xl border border-white/20">
+                <!-- Info Box -->
+                <div class="bg-indigo-500/20 rounded-xl p-4 mb-6 border border-indigo-500/30">
+                    <div class="flex items-start gap-3">
+                        <svg class="w-5 h-5 text-indigo-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <p class="text-sm text-indigo-200">
+                            Upload your recto (front) and verso (back) pages. The verso file should be scanned in reverse order. Both files must have the same number of pages.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- File Inputs -->
+                <div class="space-y-4 mb-6">
+                    <!-- Recto Input -->
+                    <div
+                        @drop.prevent="handleDrop($event, 'recto')"
+                        @dragover.prevent="dragOver = 'recto'"
+                        @dragleave="dragOver = null"
+                        :class="[
+                            'relative border-2 border-dashed rounded-xl p-6 transition-all cursor-pointer',
+                            dragOver === 'recto' ? 'border-indigo-400 bg-indigo-500/20' : 'border-slate-500/50 hover:border-slate-400 hover:bg-white/5',
+                            rectoFile ? 'border-green-500/50 bg-green-500/10' : ''
+                        ]"
+                        @click="$refs.rectoInput.click()"
+                    >
+                        <input
+                            ref="rectoInput"
+                            type="file"
+                            accept=".pdf"
+                            @change="handleFileSelect($event, 'recto')"
+                            class="hidden"
+                        >
+                        <div class="flex items-center gap-4">
+                            <div :class="['w-12 h-12 rounded-xl flex items-center justify-center', rectoFile ? 'bg-green-500/20' : 'bg-slate-700']">
+                                <svg v-if="!rectoFile" class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                <svg v-else class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-white font-medium">Recto (front pages)</p>
+                                <p class="text-sm text-slate-400 truncate">
+                                    {{ rectoFile ? rectoFile.name : 'Click or drag to upload PDF' }}
+                                </p>
+                            </div>
+                            <button
+                                v-if="rectoFile"
+                                @click.stop="rectoFile = null"
+                                class="text-slate-400 hover:text-red-400 transition-colors"
+                            >
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Verso Input -->
+                    <div
+                        @drop.prevent="handleDrop($event, 'verso')"
+                        @dragover.prevent="dragOver = 'verso'"
+                        @dragleave="dragOver = null"
+                        :class="[
+                            'relative border-2 border-dashed rounded-xl p-6 transition-all cursor-pointer',
+                            dragOver === 'verso' ? 'border-indigo-400 bg-indigo-500/20' : 'border-slate-500/50 hover:border-slate-400 hover:bg-white/5',
+                            versoFile ? 'border-green-500/50 bg-green-500/10' : ''
+                        ]"
+                        @click="$refs.versoInput.click()"
+                    >
+                        <input
+                            ref="versoInput"
+                            type="file"
+                            accept=".pdf"
+                            @change="handleFileSelect($event, 'verso')"
+                            class="hidden"
+                        >
+                        <div class="flex items-center gap-4">
+                            <div :class="['w-12 h-12 rounded-xl flex items-center justify-center', versoFile ? 'bg-green-500/20' : 'bg-slate-700']">
+                                <svg v-if="!versoFile" class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                <svg v-else class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-white font-medium">Verso (back pages)</p>
+                                <p class="text-sm text-slate-400 truncate">
+                                    {{ versoFile ? versoFile.name : 'Click or drag to upload PDF (in reverse order)' }}
+                                </p>
+                            </div>
+                            <button
+                                v-if="versoFile"
+                                @click.stop="versoFile = null"
+                                class="text-slate-400 hover:text-red-400 transition-colors"
+                            >
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Merge Button -->
+                <button
+                    @click="mergePdfs"
+                    :disabled="!canMerge || processing"
+                    :class="[
+                        'w-full py-4 rounded-xl font-semibold text-white transition-all',
+                        canMerge && !processing
+                            ? 'bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 shadow-lg hover:shadow-indigo-500/25'
+                            : 'bg-slate-700 cursor-not-allowed opacity-50'
+                    ]"
+                >
+                    <span v-if="processing" class="flex items-center justify-center gap-2">
+                        <svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        {{ statusMessage }}
+                    </span>
+                    <span v-else class="flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                        </svg>
+                        Merge & Download
+                    </span>
+                </button>
+
+                <!-- Status Messages -->
+                <div v-if="statusMessage && !processing" class="mt-4">
+                    <div
+                        :class="[
+                            'rounded-xl p-4 flex items-start gap-3',
+                            statusType === 'error' ? 'bg-red-500/20 border border-red-500/30' : '',
+                            statusType === 'success' ? 'bg-green-500/20 border border-green-500/30' : ''
+                        ]"
+                    >
+                        <svg v-if="statusType === 'error'" class="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <svg v-if="statusType === 'success'" class="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <p :class="statusType === 'error' ? 'text-red-200' : 'text-green-200'">
+                            {{ statusMessage }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <p class="text-center text-slate-500 text-sm mt-6">
+                All processing happens locally in your browser. No files are uploaded to any server.
+            </p>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, computed } = Vue;
+        const { PDFDocument } = PDFLib;
+
+        createApp({
+            setup() {
+                const rectoFile = ref(null);
+                const versoFile = ref(null);
+                const processing = ref(false);
+                const statusMessage = ref('');
+                const statusType = ref('');
+                const dragOver = ref(null);
+
+                const canMerge = computed(() => rectoFile.value && versoFile.value);
+
+                function handleFileSelect(event, type) {
+                    const file = event.target.files[0];
+                    if (file && file.type === 'application/pdf') {
+                        if (type === 'recto') {
+                            rectoFile.value = file;
+                        } else {
+                            versoFile.value = file;
+                        }
+                        clearStatus();
+                    }
+                }
+
+                function handleDrop(event, type) {
+                    dragOver.value = null;
+                    const file = event.dataTransfer.files[0];
+                    if (file && file.type === 'application/pdf') {
+                        if (type === 'recto') {
+                            rectoFile.value = file;
+                        } else {
+                            versoFile.value = file;
+                        }
+                        clearStatus();
+                    }
+                }
+
+                function clearStatus() {
+                    statusMessage.value = '';
+                    statusType.value = '';
+                }
+
+                function slugify(text) {
+                    return text
+                        .toString()
+                        .toLowerCase()
+                        .trim()
+                        .replace(/\s+/g, '-')
+                        .replace(/[^\w\-]+/g, '')
+                        .replace(/\-\-+/g, '-')
+                        .replace(/^-+/, '')
+                        .replace(/-+$/, '');
+                }
+
+                function getBaseName(filename) {
+                    return filename.replace(/\.pdf$/i, '');
+                }
+
+                async function mergePdfs() {
+                    if (!canMerge.value) return;
+
+                    try {
+                        processing.value = true;
+                        statusMessage.value = 'Reading PDF files...';
+
+                        const rectoBytes = await rectoFile.value.arrayBuffer();
+                        const versoBytes = await versoFile.value.arrayBuffer();
+
+                        const rectoPdf = await PDFDocument.load(rectoBytes);
+                        const versoPdf = await PDFDocument.load(versoBytes);
+
+                        const rectoCount = rectoPdf.getPageCount();
+                        const versoCount = versoPdf.getPageCount();
+
+                        if (rectoCount !== versoCount) {
+                            statusMessage.value = `Page count mismatch: recto has ${rectoCount} pages, verso has ${versoCount} pages`;
+                            statusType.value = 'error';
+                            processing.value = false;
+                            return;
+                        }
+
+                        statusMessage.value = `Merging ${rectoCount * 2} pages...`;
+
+                        const mergedPdf = await PDFDocument.create();
+
+                        for (let i = 0; i < rectoCount; i++) {
+                            const [rectoPage] = await mergedPdf.copyPages(rectoPdf, [i]);
+                            mergedPdf.addPage(rectoPage);
+
+                            const versoIndex = versoCount - 1 - i;
+                            const [versoPage] = await mergedPdf.copyPages(versoPdf, [versoIndex]);
+                            mergedPdf.addPage(versoPage);
+                        }
+
+                        const mergedBytes = await mergedPdf.save();
+                        const blob = new Blob([mergedBytes], { type: 'application/pdf' });
+
+                        const outputName = slugify(
+                            `combined-${getBaseName(rectoFile.value.name)}-${getBaseName(versoFile.value.name)}`
+                        ) + '.pdf';
+
+                        const link = document.createElement('a');
+                        link.href = URL.createObjectURL(blob);
+                        link.download = outputName;
+                        link.click();
+                        URL.revokeObjectURL(link.href);
+
+                        const sizeKB = Math.round(mergedBytes.length / 1024);
+                        statusMessage.value = `Downloaded "${outputName}" (${sizeKB} KB, ${mergedPdf.getPageCount()} pages)`;
+                        statusType.value = 'success';
+
+                    } catch (err) {
+                        statusMessage.value = `Error: ${err.message}`;
+                        statusType.value = 'error';
+                    } finally {
+                        processing.value = false;
+                    }
+                }
+
+                return {
+                    rectoFile,
+                    versoFile,
+                    processing,
+                    statusMessage,
+                    statusType,
+                    dragOver,
+                    canMerge,
+                    handleFileSelect,
+                    handleDrop,
+                    mergePdfs
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
