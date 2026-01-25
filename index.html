@@ -6,6 +6,7 @@
     <title>Merge Recto Verso</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -41,6 +42,28 @@
                             Upload your recto (front) and verso (back) pages. The verso file should be scanned in reverse order. Both files must have the same number of pages.
                         </p>
                     </div>
+                </div>
+
+                <!-- Scanned Effect Toggle -->
+                <div class="mb-6">
+                    <label
+                        class="flex items-center gap-3 cursor-pointer group"
+                        @click="scannedEffect = !scannedEffect"
+                    >
+                        <div :class="[
+                            'relative w-12 h-6 rounded-full transition-colors',
+                            scannedEffect ? 'bg-indigo-500' : 'bg-slate-600'
+                        ]">
+                            <div :class="[
+                                'absolute top-1 w-4 h-4 rounded-full bg-white transition-transform',
+                                scannedEffect ? 'translate-x-7' : 'translate-x-1'
+                            ]"></div>
+                        </div>
+                        <div>
+                            <span class="text-white font-medium">Scanned effect</span>
+                            <p class="text-xs text-slate-400">Add slight rotation, noise, and blur to look like a photocopy</p>
+                        </div>
+                    </label>
                 </div>
 
                 <!-- File Inputs -->
@@ -194,6 +217,8 @@
     </div>
 
     <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
         const { createApp, ref, computed } = Vue;
         const { PDFDocument } = PDFLib;
 
@@ -205,6 +230,7 @@
                 const statusMessage = ref('');
                 const statusType = ref('');
                 const dragOver = ref(null);
+                const scannedEffect = ref(false);
 
                 const canMerge = computed(() => rectoFile.value && versoFile.value);
 
@@ -254,6 +280,73 @@
                     return filename.replace(/\.pdf$/i, '');
                 }
 
+                // Apply scanned effect to a canvas
+                function applyScannedEffect(canvas) {
+                    const ctx = canvas.getContext('2d');
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const data = imageData.data;
+
+                    // Add multiplicative noise (like ImageMagick's +noise Multiplicative)
+                    for (let i = 0; i < data.length; i += 4) {
+                        const noise1 = 1 + (Math.random() - 0.5) * 0.15; // attenuate 0.2
+                        const noise2 = 1 + (Math.random() - 0.5) * 0.008; // attenuate 0.01
+                        const combined = noise1 * noise2;
+
+                        data[i] = Math.min(255, Math.max(0, data[i] * combined));
+                        data[i + 1] = Math.min(255, Math.max(0, data[i + 1] * combined));
+                        data[i + 2] = Math.min(255, Math.max(0, data[i + 2] * combined));
+                    }
+
+                    ctx.putImageData(imageData, 0, 0);
+
+                    // Simple sharpen effect
+                    ctx.globalCompositeOperation = 'source-over';
+                    ctx.filter = 'contrast(1.02) brightness(0.99)';
+                    ctx.drawImage(canvas, 0, 0);
+                    ctx.filter = 'none';
+
+                    return canvas;
+                }
+
+                // Render PDF page to canvas with optional scanned effect
+                async function renderPageToImage(pdfBytes, pageIndex, applyEffect) {
+                    const pdf = await pdfjsLib.getDocument({ data: pdfBytes }).promise;
+                    const page = await pdf.getPage(pageIndex + 1);
+
+                    const scale = 2; // 150 DPI equivalent
+                    const viewport = page.getViewport({ scale });
+
+                    // Add padding for rotation
+                    const padding = applyEffect ? 20 : 0;
+                    const canvas = document.createElement('canvas');
+                    canvas.width = viewport.width + padding * 2;
+                    canvas.height = viewport.height + padding * 2;
+
+                    const ctx = canvas.getContext('2d');
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                    // Apply slight random rotation if effect is enabled
+                    if (applyEffect) {
+                        const angle = (Math.random() > 0.5 ? 1 : -1) * (0.5 + Math.random() * 0.4) * Math.PI / 180;
+                        ctx.translate(canvas.width / 2, canvas.height / 2);
+                        ctx.rotate(angle);
+                        ctx.translate(-canvas.width / 2, -canvas.height / 2);
+                    }
+
+                    await page.render({
+                        canvasContext: ctx,
+                        viewport: viewport,
+                        transform: [1, 0, 0, 1, padding, padding]
+                    }).promise;
+
+                    if (applyEffect) {
+                        applyScannedEffect(canvas);
+                    }
+
+                    return canvas.toDataURL('image/jpeg', 0.92);
+                }
+
                 async function mergePdfs() {
                     if (!canMerge.value) return;
 
@@ -281,20 +374,52 @@
 
                         const mergedPdf = await PDFDocument.create();
 
-                        for (let i = 0; i < rectoCount; i++) {
-                            const [rectoPage] = await mergedPdf.copyPages(rectoPdf, [i]);
-                            mergedPdf.addPage(rectoPage);
+                        if (scannedEffect.value) {
+                            // Render pages to images with scanned effect
+                            for (let i = 0; i < rectoCount; i++) {
+                                statusMessage.value = `Processing page ${i * 2 + 1} of ${rectoCount * 2}...`;
 
-                            const versoIndex = versoCount - 1 - i;
-                            const [versoPage] = await mergedPdf.copyPages(versoPdf, [versoIndex]);
-                            mergedPdf.addPage(versoPage);
+                                // Recto page
+                                const rectoImg = await renderPageToImage(rectoBytes, i, true);
+                                const rectoJpg = await mergedPdf.embedJpg(rectoImg);
+                                const rectoPageObj = mergedPdf.addPage([rectoJpg.width / 2, rectoJpg.height / 2]);
+                                rectoPageObj.drawImage(rectoJpg, {
+                                    x: 0, y: 0,
+                                    width: rectoJpg.width / 2,
+                                    height: rectoJpg.height / 2
+                                });
+
+                                statusMessage.value = `Processing page ${i * 2 + 2} of ${rectoCount * 2}...`;
+
+                                // Verso page (reversed order)
+                                const versoIndex = versoCount - 1 - i;
+                                const versoImg = await renderPageToImage(versoBytes, versoIndex, true);
+                                const versoJpg = await mergedPdf.embedJpg(versoImg);
+                                const versoPageObj = mergedPdf.addPage([versoJpg.width / 2, versoJpg.height / 2]);
+                                versoPageObj.drawImage(versoJpg, {
+                                    x: 0, y: 0,
+                                    width: versoJpg.width / 2,
+                                    height: versoJpg.height / 2
+                                });
+                            }
+                        } else {
+                            // Direct page copy (no effect)
+                            for (let i = 0; i < rectoCount; i++) {
+                                const [rectoPage] = await mergedPdf.copyPages(rectoPdf, [i]);
+                                mergedPdf.addPage(rectoPage);
+
+                                const versoIndex = versoCount - 1 - i;
+                                const [versoPage] = await mergedPdf.copyPages(versoPdf, [versoIndex]);
+                                mergedPdf.addPage(versoPage);
+                            }
                         }
 
                         const mergedBytes = await mergedPdf.save();
                         const blob = new Blob([mergedBytes], { type: 'application/pdf' });
 
+                        const suffix = scannedEffect.value ? '-scanned' : '';
                         const outputName = slugify(
-                            `combined-${getBaseName(rectoFile.value.name)}-${getBaseName(versoFile.value.name)}`
+                            `combined-${getBaseName(rectoFile.value.name)}-${getBaseName(versoFile.value.name)}${suffix}`
                         ) + '.pdf';
 
                         const link = document.createElement('a');
@@ -323,6 +448,7 @@
                     statusType,
                     dragOver,
                     canMerge,
+                    scannedEffect,
                     handleFileSelect,
                     handleDrop,
                     mergePdfs
