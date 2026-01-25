@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -43,26 +43,41 @@
         }
     </style>
 </head>
-<body class="bg-dark-900 text-white">
+<body class="bg-gray-50 dark:bg-dark-900 text-gray-900 dark:text-white transition-colors duration-200">
     <div id="app" class="min-h-screen flex flex-col">
-        <!-- Header with Tabs -->
-        <div class="w-full max-w-md mx-auto pt-4 px-4">
-            <div class="flex gap-1 p-1 bg-dark-800 rounded-lg">
+        <!-- Header with Tabs + Theme Toggle -->
+        <div class="w-full max-w-md mx-auto pt-4 px-4 flex items-center gap-2">
+            <div class="flex-1 flex gap-1 p-1 bg-gray-200 dark:bg-dark-800 rounded-lg">
                 <button
                     @click="mode = 'merge'"
                     class="flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors duration-200"
-                    :class="mode === 'merge' ? 'bg-beat text-white' : 'text-gray-400 hover:text-gray-300'"
+                    :class="mode === 'merge' ? 'bg-beat text-white' : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-300'"
                 >
                     Merge Recto/Verso
                 </button>
                 <button
                     @click="mode = 'scanned'"
                     class="flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors duration-200"
-                    :class="mode === 'scanned' ? 'bg-beat text-white' : 'text-gray-400 hover:text-gray-300'"
+                    :class="mode === 'scanned' ? 'bg-beat text-white' : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-300'"
                 >
                     Scanned Effect
                 </button>
             </div>
+            <!-- Theme Toggle -->
+            <button
+                @click="toggleTheme"
+                class="p-2 rounded-lg bg-gray-200 dark:bg-dark-700 hover:bg-gray-300 dark:hover:bg-dark-600 transition-colors shrink-0"
+                :title="theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
+            >
+                <!-- Sun icon (show in dark mode) -->
+                <svg v-if="theme === 'dark'" class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd" />
+                </svg>
+                <!-- Moon icon (show in light mode) -->
+                <svg v-else class="w-5 h-5 text-gray-700" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+                </svg>
+            </button>
         </div>
 
         <!-- Main Content -->
@@ -72,7 +87,7 @@
                 <template v-if="mode === 'merge'">
                     <!-- Info -->
                     <div class="text-center mb-6">
-                        <p class="text-sm text-gray-400">
+                        <p class="text-sm text-gray-500 dark:text-gray-400">
                             Combine front and back scanned pages. Verso should be in reverse order.
                         </p>
                     </div>
@@ -87,14 +102,14 @@
                             @click="$refs.rectoInput.click()"
                             class="p-4 rounded-xl border-2 border-dashed transition-colors duration-200 cursor-pointer"
                             :class="[
-                                rectoFile ? 'border-beat bg-beat/10' : 'border-dark-700 hover:border-dark-600',
+                                rectoFile ? 'border-beat bg-beat/10' : 'border-gray-300 dark:border-dark-700 hover:border-gray-400 dark:hover:border-dark-600',
                                 dragOver === 'recto' ? 'border-beat bg-beat/10' : ''
                             ]"
                         >
                             <input ref="rectoInput" type="file" accept=".pdf" @change="handleFileSelect($event, 'recto')" class="hidden">
                             <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-lg flex items-center justify-center" :class="rectoFile ? 'bg-beat/20' : 'bg-dark-700'">
-                                    <svg v-if="!rectoFile" class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div class="w-10 h-10 rounded-lg flex items-center justify-center" :class="rectoFile ? 'bg-beat/20' : 'bg-gray-200 dark:bg-dark-700'">
+                                    <svg v-if="!rectoFile" class="w-5 h-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                     </svg>
                                     <svg v-else class="w-5 h-5 text-beat" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -102,10 +117,10 @@
                                     </svg>
                                 </div>
                                 <div class="flex-1 min-w-0">
-                                    <p class="text-sm font-medium text-gray-300">Recto (front pages)</p>
+                                    <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Recto (front pages)</p>
                                     <p class="text-xs text-gray-500 truncate">{{ rectoFile ? rectoFile.name : 'Click or drag PDF' }}</p>
                                 </div>
-                                <button v-if="rectoFile" @click.stop="rectoFile = null" class="text-gray-500 hover:text-accent transition-colors">
+                                <button v-if="rectoFile" @click.stop="rectoFile = null" class="text-gray-400 dark:text-gray-500 hover:text-accent transition-colors">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                                     </svg>
@@ -121,14 +136,14 @@
                             @click="$refs.versoInput.click()"
                             class="p-4 rounded-xl border-2 border-dashed transition-colors duration-200 cursor-pointer"
                             :class="[
-                                versoFile ? 'border-beat bg-beat/10' : 'border-dark-700 hover:border-dark-600',
+                                versoFile ? 'border-beat bg-beat/10' : 'border-gray-300 dark:border-dark-700 hover:border-gray-400 dark:hover:border-dark-600',
                                 dragOver === 'verso' ? 'border-beat bg-beat/10' : ''
                             ]"
                         >
                             <input ref="versoInput" type="file" accept=".pdf" @change="handleFileSelect($event, 'verso')" class="hidden">
                             <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-lg flex items-center justify-center" :class="versoFile ? 'bg-beat/20' : 'bg-dark-700'">
-                                    <svg v-if="!versoFile" class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div class="w-10 h-10 rounded-lg flex items-center justify-center" :class="versoFile ? 'bg-beat/20' : 'bg-gray-200 dark:bg-dark-700'">
+                                    <svg v-if="!versoFile" class="w-5 h-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                     </svg>
                                     <svg v-else class="w-5 h-5 text-beat" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -136,10 +151,10 @@
                                     </svg>
                                 </div>
                                 <div class="flex-1 min-w-0">
-                                    <p class="text-sm font-medium text-gray-300">Verso (back pages)</p>
+                                    <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Verso (back pages)</p>
                                     <p class="text-xs text-gray-500 truncate">{{ versoFile ? versoFile.name : 'Click or drag PDF (reverse order)' }}</p>
                                 </div>
-                                <button v-if="versoFile" @click.stop="versoFile = null" class="text-gray-500 hover:text-accent transition-colors">
+                                <button v-if="versoFile" @click.stop="versoFile = null" class="text-gray-400 dark:text-gray-500 hover:text-accent transition-colors">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                                     </svg>
@@ -150,11 +165,11 @@
 
                     <!-- Scanned Effect Toggle -->
                     <div class="flex items-center justify-between mb-4">
-                        <label class="text-sm font-medium text-gray-300">Apply scanned effect</label>
+                        <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Apply scanned effect</label>
                         <button
                             @click="scannedEffect = !scannedEffect"
                             class="relative w-12 h-7 rounded-full transition-colors duration-200"
-                            :class="scannedEffect ? 'bg-beat' : 'bg-dark-700'"
+                            :class="scannedEffect ? 'bg-beat' : 'bg-gray-300 dark:bg-dark-700'"
                         >
                             <span
                                 class="absolute top-1 left-1 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200"
@@ -170,7 +185,7 @@
                         class="w-full py-3 px-6 rounded-xl font-bold text-lg transition-all duration-200 touch-manipulation shadow-lg"
                         :class="canMerge && !processing
                             ? 'bg-beat hover:bg-teal-600 active:bg-teal-700 text-white'
-                            : 'bg-dark-700 text-gray-500 cursor-not-allowed'"
+                            : 'bg-gray-200 dark:bg-dark-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'"
                     >
                         <span v-if="processing" class="flex items-center justify-center gap-2">
                             <svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
@@ -187,7 +202,7 @@
                 <template v-else>
                     <!-- Info -->
                     <div class="text-center mb-6">
-                        <p class="text-sm text-gray-400">
+                        <p class="text-sm text-gray-500 dark:text-gray-400">
                             Apply a photocopy effect: slight rotation, noise, and contrast.
                         </p>
                     </div>
@@ -201,14 +216,14 @@
                             @click="$refs.singleInput.click()"
                             class="p-4 rounded-xl border-2 border-dashed transition-colors duration-200 cursor-pointer"
                             :class="[
-                                singleFile ? 'border-beat bg-beat/10' : 'border-dark-700 hover:border-dark-600',
+                                singleFile ? 'border-beat bg-beat/10' : 'border-gray-300 dark:border-dark-700 hover:border-gray-400 dark:hover:border-dark-600',
                                 dragOver === 'single' ? 'border-beat bg-beat/10' : ''
                             ]"
                         >
                             <input ref="singleInput" type="file" accept=".pdf" @change="handleFileSelect($event, 'single')" class="hidden">
                             <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-lg flex items-center justify-center" :class="singleFile ? 'bg-beat/20' : 'bg-dark-700'">
-                                    <svg v-if="!singleFile" class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div class="w-10 h-10 rounded-lg flex items-center justify-center" :class="singleFile ? 'bg-beat/20' : 'bg-gray-200 dark:bg-dark-700'">
+                                    <svg v-if="!singleFile" class="w-5 h-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                     </svg>
                                     <svg v-else class="w-5 h-5 text-beat" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -216,10 +231,10 @@
                                     </svg>
                                 </div>
                                 <div class="flex-1 min-w-0">
-                                    <p class="text-sm font-medium text-gray-300">PDF File</p>
+                                    <p class="text-sm font-medium text-gray-700 dark:text-gray-300">PDF File</p>
                                     <p class="text-xs text-gray-500 truncate">{{ singleFile ? singleFile.name : 'Click or drag PDF' }}</p>
                                 </div>
-                                <button v-if="singleFile" @click.stop="singleFile = null" class="text-gray-500 hover:text-accent transition-colors">
+                                <button v-if="singleFile" @click.stop="singleFile = null" class="text-gray-400 dark:text-gray-500 hover:text-accent transition-colors">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                                     </svg>
@@ -235,7 +250,7 @@
                         class="w-full py-3 px-6 rounded-xl font-bold text-lg transition-all duration-200 touch-manipulation shadow-lg"
                         :class="singleFile && !processing
                             ? 'bg-beat hover:bg-teal-600 active:bg-teal-700 text-white'
-                            : 'bg-dark-700 text-gray-500 cursor-not-allowed'"
+                            : 'bg-gray-200 dark:bg-dark-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'"
                     >
                         <span v-if="processing" class="flex items-center justify-center gap-2">
                             <svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
@@ -261,8 +276,13 @@
         </main>
 
         <!-- Footer -->
-        <footer class="py-2 text-center text-gray-600 text-sm">
-            All processing happens locally in your browser
+        <footer class="py-2 text-center text-gray-500 dark:text-gray-600 text-sm">
+            Built with ❤️ by Martin – <a
+                href="https://github.com/tintamarre/merge-recto-verso"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="hover:text-gray-700 dark:hover:text-gray-400 transition-colors"
+            >Source code</a>
         </footer>
     </div>
 
@@ -283,6 +303,26 @@
                 const statusType = ref('');
                 const dragOver = ref(null);
                 const scannedEffect = ref(false);
+
+                // Theme management
+                const theme = ref(localStorage.getItem('theme') || 'light');
+
+                function applyTheme(t) {
+                    if (t === 'dark') {
+                        document.documentElement.classList.add('dark');
+                    } else {
+                        document.documentElement.classList.remove('dark');
+                    }
+                }
+
+                function toggleTheme() {
+                    theme.value = theme.value === 'dark' ? 'light' : 'dark';
+                    localStorage.setItem('theme', theme.value);
+                    applyTheme(theme.value);
+                }
+
+                // Apply theme on load
+                applyTheme(theme.value);
 
                 const canMerge = computed(() => rectoFile.value && versoFile.value);
 
@@ -550,6 +590,8 @@
                     dragOver,
                     canMerge,
                     scannedEffect,
+                    theme,
+                    toggleTheme,
                     handleFileSelect,
                     handleDrop,
                     mergePdfs,
