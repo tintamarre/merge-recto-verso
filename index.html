@@ -18,584 +18,358 @@
                     colors: {
                         accent: '#e76f51',
                         beat: '#2a9d8f',
-                        dark: {
-                            900: '#0f0f0f',
-                            800: '#1a1a1a',
-                            700: '#2a2a2a',
-                            600: '#3a3a3a',
-                        }
+                        dark: { 900: '#0f0f0f', 800: '#1a1a1a', 700: '#2a2a2a', 600: '#3a3a3a' }
                     }
                 }
             }
         }
     </script>
     <style>
-        :root {
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            font-synthesis: none;
-            text-rendering: optimizeLegibility;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-        }
-        body {
-            margin: 0;
-            min-height: 100vh;
-        }
+        :root { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        body { margin: 0; min-height: 100vh; }
     </style>
 </head>
 <body class="bg-gray-50 dark:bg-dark-900 text-gray-900 dark:text-white transition-colors duration-200">
     <div id="app" class="min-h-screen flex flex-col">
-        <!-- Header with Tabs + Theme Toggle -->
+        <!-- Header -->
         <div class="w-full max-w-md mx-auto pt-4 px-4 flex items-center gap-2">
             <div class="flex-1 flex gap-1 p-1 bg-gray-200 dark:bg-dark-800 rounded-lg">
                 <button
-                    @click="mode = 'merge'"
+                    v-for="tab in tabs"
+                    :key="tab.id"
+                    @click="mode = tab.id"
                     class="flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors duration-200"
-                    :class="mode === 'merge' ? 'bg-beat text-white' : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-300'"
-                >
-                    Merge Recto/Verso
-                </button>
-                <button
-                    @click="mode = 'scanned'"
-                    class="flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors duration-200"
-                    :class="mode === 'scanned' ? 'bg-beat text-white' : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-300'"
-                >
-                    Scanned Effect
-                </button>
+                    :class="mode === tab.id ? 'bg-beat text-white' : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-300'"
+                >{{ tab.label }}</button>
             </div>
-            <!-- Theme Toggle -->
             <button
                 @click="toggleTheme"
                 class="p-2 rounded-lg bg-gray-200 dark:bg-dark-700 hover:bg-gray-300 dark:hover:bg-dark-600 transition-colors shrink-0"
-                :title="theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
             >
-                <!-- Sun icon (show in dark mode) -->
                 <svg v-if="theme === 'dark'" class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd" />
                 </svg>
-                <!-- Moon icon (show in light mode) -->
                 <svg v-else class="w-5 h-5 text-gray-700" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
                 </svg>
             </button>
         </div>
 
-        <!-- Main Content -->
+        <!-- Main -->
         <main class="flex-1 flex flex-col items-center justify-center px-4 py-4">
             <div class="w-full max-w-md mx-auto">
-                <!-- MERGE MODE -->
-                <template v-if="mode === 'merge'">
-                    <!-- Info -->
-                    <div class="text-center mb-6">
-                        <p class="text-sm text-gray-500 dark:text-gray-400">
-                            Combine front and back scanned pages. Verso should be in reverse order.
-                        </p>
-                    </div>
+                <p class="text-center text-sm text-gray-500 dark:text-gray-400 mb-6">{{ currentTab.description }}</p>
 
-                    <!-- File Inputs -->
-                    <div class="flex flex-col gap-3 mb-4">
-                        <!-- Recto -->
-                        <div
-                            @drop.prevent="handleDrop($event, 'recto')"
-                            @dragover.prevent="dragOver = 'recto'"
-                            @dragleave="dragOver = null"
-                            @click="$refs.rectoInput.click()"
-                            class="p-4 rounded-xl border-2 border-dashed transition-colors duration-200 cursor-pointer"
-                            :class="[
-                                rectoFile ? 'border-beat bg-beat/10' : 'border-gray-300 dark:border-dark-700 hover:border-gray-400 dark:hover:border-dark-600',
-                                dragOver === 'recto' ? 'border-beat bg-beat/10' : ''
-                            ]"
-                        >
-                            <input ref="rectoInput" type="file" accept=".pdf" @change="handleFileSelect($event, 'recto')" class="hidden">
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-lg flex items-center justify-center" :class="rectoFile ? 'bg-beat/20' : 'bg-gray-200 dark:bg-dark-700'">
-                                    <svg v-if="!rectoFile" class="w-5 h-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                    </svg>
-                                    <svg v-else class="w-5 h-5 text-beat" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                    </svg>
-                                </div>
-                                <div class="flex-1 min-w-0">
-                                    <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Recto (front pages)</p>
-                                    <p class="text-xs text-gray-500 truncate">{{ rectoFile ? rectoFile.name : 'Click or drag PDF' }}</p>
-                                </div>
-                                <button v-if="rectoFile" @click.stop="rectoFile = null" class="text-gray-400 dark:text-gray-500 hover:text-accent transition-colors">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
+                <!-- File Inputs -->
+                <div class="flex flex-col gap-3 mb-4">
+                    <file-input
+                        v-for="input in currentTab.inputs"
+                        :key="input.id"
+                        :label="input.label"
+                        :hint="input.hint"
+                        :file="files[input.id]"
+                        @update="files[input.id] = $event"
+                    />
+                </div>
 
-                        <!-- Verso -->
-                        <div
-                            @drop.prevent="handleDrop($event, 'verso')"
-                            @dragover.prevent="dragOver = 'verso'"
-                            @dragleave="dragOver = null"
-                            @click="$refs.versoInput.click()"
-                            class="p-4 rounded-xl border-2 border-dashed transition-colors duration-200 cursor-pointer"
-                            :class="[
-                                versoFile ? 'border-beat bg-beat/10' : 'border-gray-300 dark:border-dark-700 hover:border-gray-400 dark:hover:border-dark-600',
-                                dragOver === 'verso' ? 'border-beat bg-beat/10' : ''
-                            ]"
-                        >
-                            <input ref="versoInput" type="file" accept=".pdf" @change="handleFileSelect($event, 'verso')" class="hidden">
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-lg flex items-center justify-center" :class="versoFile ? 'bg-beat/20' : 'bg-gray-200 dark:bg-dark-700'">
-                                    <svg v-if="!versoFile" class="w-5 h-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                    </svg>
-                                    <svg v-else class="w-5 h-5 text-beat" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                    </svg>
-                                </div>
-                                <div class="flex-1 min-w-0">
-                                    <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Verso (back pages)</p>
-                                    <p class="text-xs text-gray-500 truncate">{{ versoFile ? versoFile.name : 'Click or drag PDF (reverse order)' }}</p>
-                                </div>
-                                <button v-if="versoFile" @click.stop="versoFile = null" class="text-gray-400 dark:text-gray-500 hover:text-accent transition-colors">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Scanned Effect Toggle -->
-                    <div class="flex items-center justify-between mb-4">
-                        <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Apply scanned effect</label>
-                        <button
-                            @click="scannedEffect = !scannedEffect"
-                            class="relative w-12 h-7 rounded-full transition-colors duration-200"
-                            :class="scannedEffect ? 'bg-beat' : 'bg-gray-300 dark:bg-dark-700'"
-                        >
-                            <span
-                                class="absolute top-1 left-1 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200"
-                                :class="scannedEffect ? 'translate-x-5' : 'translate-x-0'"
-                            ></span>
-                        </button>
-                    </div>
-
-                    <!-- Merge Button -->
+                <!-- Scanned Effect Toggle (merge mode only) -->
+                <div v-if="mode === 'merge'" class="flex items-center justify-between mb-4">
+                    <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Apply scanned effect</label>
                     <button
-                        @click="mergePdfs"
-                        :disabled="!canMerge || processing"
-                        class="w-full py-3 px-6 rounded-xl font-bold text-lg transition-all duration-200 touch-manipulation shadow-lg"
-                        :class="canMerge && !processing
-                            ? 'bg-beat hover:bg-teal-600 active:bg-teal-700 text-white'
-                            : 'bg-gray-200 dark:bg-dark-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'"
+                        @click="scannedEffect = !scannedEffect"
+                        class="relative w-12 h-7 rounded-full transition-colors duration-200"
+                        :class="scannedEffect ? 'bg-beat' : 'bg-gray-300 dark:bg-dark-700'"
                     >
-                        <span v-if="processing" class="flex items-center justify-center gap-2">
-                            <svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            {{ statusMessage }}
-                        </span>
-                        <span v-else>Merge & Download</span>
+                        <span class="absolute top-1 left-1 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200"
+                              :class="scannedEffect ? 'translate-x-5' : 'translate-x-0'"></span>
                     </button>
-                </template>
+                </div>
 
-                <!-- SCANNED EFFECT MODE -->
-                <template v-else>
-                    <!-- Info -->
-                    <div class="text-center mb-6">
-                        <p class="text-sm text-gray-500 dark:text-gray-400">
-                            Apply a photocopy effect: slight rotation, noise, and contrast.
-                        </p>
-                    </div>
-
-                    <!-- Single File Input -->
-                    <div class="mb-4">
-                        <div
-                            @drop.prevent="handleDrop($event, 'single')"
-                            @dragover.prevent="dragOver = 'single'"
-                            @dragleave="dragOver = null"
-                            @click="$refs.singleInput.click()"
-                            class="p-4 rounded-xl border-2 border-dashed transition-colors duration-200 cursor-pointer"
-                            :class="[
-                                singleFile ? 'border-beat bg-beat/10' : 'border-gray-300 dark:border-dark-700 hover:border-gray-400 dark:hover:border-dark-600',
-                                dragOver === 'single' ? 'border-beat bg-beat/10' : ''
-                            ]"
-                        >
-                            <input ref="singleInput" type="file" accept=".pdf" @change="handleFileSelect($event, 'single')" class="hidden">
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-lg flex items-center justify-center" :class="singleFile ? 'bg-beat/20' : 'bg-gray-200 dark:bg-dark-700'">
-                                    <svg v-if="!singleFile" class="w-5 h-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                    </svg>
-                                    <svg v-else class="w-5 h-5 text-beat" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                    </svg>
-                                </div>
-                                <div class="flex-1 min-w-0">
-                                    <p class="text-sm font-medium text-gray-700 dark:text-gray-300">PDF File</p>
-                                    <p class="text-xs text-gray-500 truncate">{{ singleFile ? singleFile.name : 'Click or drag PDF' }}</p>
-                                </div>
-                                <button v-if="singleFile" @click.stop="singleFile = null" class="text-gray-400 dark:text-gray-500 hover:text-accent transition-colors">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Apply Effect Button -->
-                    <button
-                        @click="applyScannedToPdf"
-                        :disabled="!singleFile || processing"
-                        class="w-full py-3 px-6 rounded-xl font-bold text-lg transition-all duration-200 touch-manipulation shadow-lg"
-                        :class="singleFile && !processing
-                            ? 'bg-beat hover:bg-teal-600 active:bg-teal-700 text-white'
-                            : 'bg-gray-200 dark:bg-dark-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'"
-                    >
-                        <span v-if="processing" class="flex items-center justify-center gap-2">
-                            <svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            {{ statusMessage }}
-                        </span>
-                        <span v-else>Apply Effect & Download</span>
-                    </button>
-                </template>
-
-                <!-- Status Messages -->
-                <div v-if="statusMessage && !processing" class="mt-4">
-                    <div
-                        class="rounded-xl p-3 text-sm"
-                        :class="statusType === 'error' ? 'bg-accent/20 text-accent' : 'bg-beat/20 text-beat'"
-                    >
+                <!-- Action Button -->
+                <button
+                    @click="process"
+                    :disabled="!canProcess || processing"
+                    class="w-full py-3 px-6 rounded-xl font-bold text-lg transition-all duration-200 touch-manipulation shadow-lg"
+                    :class="canProcess && !processing
+                        ? 'bg-beat hover:bg-teal-600 active:bg-teal-700 text-white'
+                        : 'bg-gray-200 dark:bg-dark-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'"
+                >
+                    <span v-if="processing" class="flex items-center justify-center gap-2">
+                        <svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
                         {{ statusMessage }}
-                    </div>
+                    </span>
+                    <span v-else>{{ currentTab.buttonLabel }}</span>
+                </button>
+
+                <!-- Status -->
+                <div v-if="statusMessage && !processing" class="mt-4 rounded-xl p-3 text-sm"
+                     :class="statusType === 'error' ? 'bg-accent/20 text-accent' : 'bg-beat/20 text-beat'">
+                    {{ statusMessage }}
                 </div>
             </div>
         </main>
 
         <!-- Footer -->
         <footer class="py-2 text-center text-gray-500 dark:text-gray-600 text-sm">
-            Built with ❤️ by Martin – <a
-                href="https://github.com/tintamarre/merge-recto-verso"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="hover:text-gray-700 dark:hover:text-gray-400 transition-colors"
-            >Source code</a>
+            Built with ❤️ by Martin – <a href="https://github.com/tintamarre/merge-recto-verso" target="_blank" class="hover:text-gray-700 dark:hover:text-gray-400 transition-colors">Source code</a>
         </footer>
     </div>
+
+    <!-- File Input Component -->
+    <template id="file-input-template">
+        <div
+            @drop.prevent="onDrop"
+            @dragover.prevent="dragging = true"
+            @dragleave="dragging = false"
+            @click="$refs.input.click()"
+            class="p-4 rounded-xl border-2 border-dashed transition-colors duration-200 cursor-pointer"
+            :class="[
+                file ? 'border-beat bg-beat/10' : 'border-gray-300 dark:border-dark-700 hover:border-gray-400 dark:hover:border-dark-600',
+                dragging ? 'border-beat bg-beat/10' : ''
+            ]"
+        >
+            <input ref="input" type="file" accept=".pdf" @change="onSelect" class="hidden">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg flex items-center justify-center" :class="file ? 'bg-beat/20' : 'bg-gray-200 dark:bg-dark-700'">
+                    <svg v-if="!file" class="w-5 h-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <svg v-else class="w-5 h-5 text-beat" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ label }}</p>
+                    <p class="text-xs text-gray-500 truncate">{{ file ? file.name : hint }}</p>
+                </div>
+                <button v-if="file" @click.stop="$emit('update', null)" class="text-gray-400 dark:text-gray-500 hover:text-accent transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </template>
 
     <script>
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-        const { createApp, ref, computed } = Vue;
+        const { createApp, ref, computed, reactive } = Vue;
         const { PDFDocument } = PDFLib;
 
+        // File Input Component
+        const FileInput = {
+            template: '#file-input-template',
+            props: ['label', 'hint', 'file'],
+            emits: ['update'],
+            setup(props, { emit }) {
+                const dragging = ref(false);
+                const onSelect = (e) => {
+                    const file = e.target.files[0];
+                    if (file?.type === 'application/pdf') emit('update', file);
+                };
+                const onDrop = (e) => {
+                    dragging.value = false;
+                    const file = e.dataTransfer.files[0];
+                    if (file?.type === 'application/pdf') emit('update', file);
+                };
+                return { dragging, onSelect, onDrop };
+            }
+        };
+
+        // PDF Utils
+        const pdfUtils = {
+            slugify: (text) => text.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w-]+/g, '').replace(/-+/g, '-'),
+            baseName: (filename) => filename.replace(/\.pdf$/i, ''),
+
+            applyScannedEffect(canvas) {
+                const ctx = canvas.getContext('2d');
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const data = imageData.data;
+                for (let i = 0; i < data.length; i += 4) {
+                    const noise = (1 + (Math.random() - 0.5) * 0.15) * (1 + (Math.random() - 0.5) * 0.008);
+                    data[i] = Math.min(255, Math.max(0, data[i] * noise));
+                    data[i + 1] = Math.min(255, Math.max(0, data[i + 1] * noise));
+                    data[i + 2] = Math.min(255, Math.max(0, data[i + 2] * noise));
+                }
+                ctx.putImageData(imageData, 0, 0);
+                ctx.filter = 'contrast(1.02) brightness(0.99)';
+                ctx.drawImage(canvas, 0, 0);
+                ctx.filter = 'none';
+            },
+
+            async renderPageToImage(pdfBytes, pageIndex, applyEffect) {
+                const pdf = await pdfjsLib.getDocument({ data: pdfBytes }).promise;
+                const page = await pdf.getPage(pageIndex + 1);
+                const scale = 2;
+                const viewport = page.getViewport({ scale });
+                const padding = applyEffect ? 20 : 0;
+
+                const canvas = document.createElement('canvas');
+                canvas.width = viewport.width + padding * 2;
+                canvas.height = viewport.height + padding * 2;
+
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                if (applyEffect) {
+                    const angle = (Math.random() > 0.5 ? 1 : -1) * (0.5 + Math.random() * 0.4) * Math.PI / 180;
+                    ctx.translate(canvas.width / 2, canvas.height / 2);
+                    ctx.rotate(angle);
+                    ctx.translate(-canvas.width / 2, -canvas.height / 2);
+                }
+
+                await page.render({ canvasContext: ctx, viewport, transform: [1, 0, 0, 1, padding, padding] }).promise;
+                if (applyEffect) this.applyScannedEffect(canvas);
+
+                return canvas.toDataURL('image/jpeg', 0.92);
+            },
+
+            async embedImagePage(pdf, imageData) {
+                const jpg = await pdf.embedJpg(imageData);
+                const page = pdf.addPage([jpg.width / 2, jpg.height / 2]);
+                page.drawImage(jpg, { x: 0, y: 0, width: jpg.width / 2, height: jpg.height / 2 });
+            },
+
+            download(bytes, filename) {
+                const blob = new Blob([bytes], { type: 'application/pdf' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = filename;
+                link.click();
+                URL.revokeObjectURL(link.href);
+                return Math.round(bytes.length / 1024);
+            }
+        };
+
+        // Main App
         createApp({
+            components: { FileInput },
             setup() {
                 const mode = ref('merge');
-                const rectoFile = ref(null);
-                const versoFile = ref(null);
-                const singleFile = ref(null);
+                const files = reactive({ recto: null, verso: null, single: null });
                 const processing = ref(false);
                 const statusMessage = ref('');
                 const statusType = ref('');
-                const dragOver = ref(null);
                 const scannedEffect = ref(false);
-
-                // Theme management
                 const theme = ref(localStorage.getItem('theme') || 'light');
 
-                function applyTheme(t) {
-                    if (t === 'dark') {
-                        document.documentElement.classList.add('dark');
-                    } else {
-                        document.documentElement.classList.remove('dark');
+                const tabs = [
+                    {
+                        id: 'merge',
+                        label: 'Merge Recto/Verso',
+                        description: 'Combine front and back scanned pages. Verso should be in reverse order.',
+                        buttonLabel: 'Merge & Download',
+                        inputs: [
+                            { id: 'recto', label: 'Recto (front pages)', hint: 'Click or drag PDF' },
+                            { id: 'verso', label: 'Verso (back pages)', hint: 'Click or drag PDF (reverse order)' }
+                        ]
+                    },
+                    {
+                        id: 'scanned',
+                        label: 'Scanned Effect',
+                        description: 'Apply a photocopy effect: slight rotation, noise, and contrast.',
+                        buttonLabel: 'Apply Effect & Download',
+                        inputs: [
+                            { id: 'single', label: 'PDF File', hint: 'Click or drag PDF' }
+                        ]
                     }
-                }
+                ];
 
-                function toggleTheme() {
+                const currentTab = computed(() => tabs.find(t => t.id === mode.value));
+                const canProcess = computed(() => mode.value === 'merge' ? files.recto && files.verso : files.single);
+
+                const applyTheme = (t) => document.documentElement.classList.toggle('dark', t === 'dark');
+                const toggleTheme = () => {
                     theme.value = theme.value === 'dark' ? 'light' : 'dark';
                     localStorage.setItem('theme', theme.value);
                     applyTheme(theme.value);
-                }
-
-                // Apply theme on load
+                };
                 applyTheme(theme.value);
 
-                const canMerge = computed(() => rectoFile.value && versoFile.value);
+                const setStatus = (msg, type = 'success') => { statusMessage.value = msg; statusType.value = type; };
+                const clearStatus = () => setStatus('', '');
 
-                function handleFileSelect(event, type) {
-                    const file = event.target.files[0];
-                    if (file && file.type === 'application/pdf') {
-                        if (type === 'recto') {
-                            rectoFile.value = file;
-                        } else if (type === 'verso') {
-                            versoFile.value = file;
-                        } else if (type === 'single') {
-                            singleFile.value = file;
+                async function process() {
+                    if (!canProcess.value) return;
+                    clearStatus();
+                    processing.value = true;
+
+                    try {
+                        if (mode.value === 'merge') {
+                            await mergePdfs();
+                        } else {
+                            await applyScannedToPdf();
                         }
-                        clearStatus();
+                    } catch (err) {
+                        setStatus(`Error: ${err.message}`, 'error');
+                    } finally {
+                        processing.value = false;
                     }
-                }
-
-                function handleDrop(event, type) {
-                    dragOver.value = null;
-                    const file = event.dataTransfer.files[0];
-                    if (file && file.type === 'application/pdf') {
-                        if (type === 'recto') {
-                            rectoFile.value = file;
-                        } else if (type === 'verso') {
-                            versoFile.value = file;
-                        } else if (type === 'single') {
-                            singleFile.value = file;
-                        }
-                        clearStatus();
-                    }
-                }
-
-                function clearStatus() {
-                    statusMessage.value = '';
-                    statusType.value = '';
-                }
-
-                function slugify(text) {
-                    return text
-                        .toString()
-                        .toLowerCase()
-                        .trim()
-                        .replace(/\s+/g, '-')
-                        .replace(/[^\w\-]+/g, '')
-                        .replace(/\-\-+/g, '-')
-                        .replace(/^-+/, '')
-                        .replace(/-+$/, '');
-                }
-
-                function getBaseName(filename) {
-                    return filename.replace(/\.pdf$/i, '');
-                }
-
-                // Apply scanned effect to a canvas
-                function applyScannedEffect(canvas) {
-                    const ctx = canvas.getContext('2d');
-                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                    const data = imageData.data;
-
-                    for (let i = 0; i < data.length; i += 4) {
-                        const noise1 = 1 + (Math.random() - 0.5) * 0.15;
-                        const noise2 = 1 + (Math.random() - 0.5) * 0.008;
-                        const combined = noise1 * noise2;
-
-                        data[i] = Math.min(255, Math.max(0, data[i] * combined));
-                        data[i + 1] = Math.min(255, Math.max(0, data[i + 1] * combined));
-                        data[i + 2] = Math.min(255, Math.max(0, data[i + 2] * combined));
-                    }
-
-                    ctx.putImageData(imageData, 0, 0);
-                    ctx.globalCompositeOperation = 'source-over';
-                    ctx.filter = 'contrast(1.02) brightness(0.99)';
-                    ctx.drawImage(canvas, 0, 0);
-                    ctx.filter = 'none';
-
-                    return canvas;
-                }
-
-                async function renderPageToImage(pdfBytes, pageIndex, applyEffect) {
-                    const pdf = await pdfjsLib.getDocument({ data: pdfBytes }).promise;
-                    const page = await pdf.getPage(pageIndex + 1);
-
-                    const scale = 2;
-                    const viewport = page.getViewport({ scale });
-
-                    const padding = applyEffect ? 20 : 0;
-                    const canvas = document.createElement('canvas');
-                    canvas.width = viewport.width + padding * 2;
-                    canvas.height = viewport.height + padding * 2;
-
-                    const ctx = canvas.getContext('2d');
-                    ctx.fillStyle = 'white';
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                    if (applyEffect) {
-                        const angle = (Math.random() > 0.5 ? 1 : -1) * (0.5 + Math.random() * 0.4) * Math.PI / 180;
-                        ctx.translate(canvas.width / 2, canvas.height / 2);
-                        ctx.rotate(angle);
-                        ctx.translate(-canvas.width / 2, -canvas.height / 2);
-                    }
-
-                    await page.render({
-                        canvasContext: ctx,
-                        viewport: viewport,
-                        transform: [1, 0, 0, 1, padding, padding]
-                    }).promise;
-
-                    if (applyEffect) {
-                        applyScannedEffect(canvas);
-                    }
-
-                    return canvas.toDataURL('image/jpeg', 0.92);
                 }
 
                 async function mergePdfs() {
-                    if (!canMerge.value) return;
+                    statusMessage.value = 'Reading PDFs...';
+                    const rectoBytes = await files.recto.arrayBuffer();
+                    const versoBytes = await files.verso.arrayBuffer();
+                    const rectoPdf = await PDFDocument.load(rectoBytes);
+                    const versoPdf = await PDFDocument.load(versoBytes);
 
-                    try {
-                        processing.value = true;
-                        statusMessage.value = 'Reading PDFs...';
+                    if (rectoPdf.getPageCount() !== versoPdf.getPageCount()) {
+                        setStatus(`Page count mismatch: ${rectoPdf.getPageCount()} vs ${versoPdf.getPageCount()}`, 'error');
+                        return;
+                    }
 
-                        const rectoBytes = await rectoFile.value.arrayBuffer();
-                        const versoBytes = await versoFile.value.arrayBuffer();
+                    const count = rectoPdf.getPageCount();
+                    const merged = await PDFDocument.create();
 
-                        const rectoPdf = await PDFDocument.load(rectoBytes);
-                        const versoPdf = await PDFDocument.load(versoBytes);
-
-                        const rectoCount = rectoPdf.getPageCount();
-                        const versoCount = versoPdf.getPageCount();
-
-                        if (rectoCount !== versoCount) {
-                            statusMessage.value = `Page count mismatch: ${rectoCount} vs ${versoCount}`;
-                            statusType.value = 'error';
-                            processing.value = false;
-                            return;
-                        }
-
-                        statusMessage.value = `Merging ${rectoCount * 2} pages...`;
-
-                        const mergedPdf = await PDFDocument.create();
+                    for (let i = 0; i < count; i++) {
+                        statusMessage.value = `Processing ${i * 2 + 1}/${count * 2}...`;
 
                         if (scannedEffect.value) {
-                            for (let i = 0; i < rectoCount; i++) {
-                                statusMessage.value = `Processing ${i * 2 + 1}/${rectoCount * 2}...`;
-
-                                const rectoImg = await renderPageToImage(rectoBytes, i, true);
-                                const rectoJpg = await mergedPdf.embedJpg(rectoImg);
-                                const rectoPageObj = mergedPdf.addPage([rectoJpg.width / 2, rectoJpg.height / 2]);
-                                rectoPageObj.drawImage(rectoJpg, {
-                                    x: 0, y: 0,
-                                    width: rectoJpg.width / 2,
-                                    height: rectoJpg.height / 2
-                                });
-
-                                statusMessage.value = `Processing ${i * 2 + 2}/${rectoCount * 2}...`;
-
-                                const versoIndex = versoCount - 1 - i;
-                                const versoImg = await renderPageToImage(versoBytes, versoIndex, true);
-                                const versoJpg = await mergedPdf.embedJpg(versoImg);
-                                const versoPageObj = mergedPdf.addPage([versoJpg.width / 2, versoJpg.height / 2]);
-                                versoPageObj.drawImage(versoJpg, {
-                                    x: 0, y: 0,
-                                    width: versoJpg.width / 2,
-                                    height: versoJpg.height / 2
-                                });
-                            }
+                            await pdfUtils.embedImagePage(merged, await pdfUtils.renderPageToImage(rectoBytes, i, true));
+                            await pdfUtils.embedImagePage(merged, await pdfUtils.renderPageToImage(versoBytes, count - 1 - i, true));
                         } else {
-                            for (let i = 0; i < rectoCount; i++) {
-                                const [rectoPage] = await mergedPdf.copyPages(rectoPdf, [i]);
-                                mergedPdf.addPage(rectoPage);
-
-                                const versoIndex = versoCount - 1 - i;
-                                const [versoPage] = await mergedPdf.copyPages(versoPdf, [versoIndex]);
-                                mergedPdf.addPage(versoPage);
-                            }
+                            const [rp] = await merged.copyPages(rectoPdf, [i]);
+                            const [vp] = await merged.copyPages(versoPdf, [count - 1 - i]);
+                            merged.addPage(rp);
+                            merged.addPage(vp);
                         }
-
-                        const mergedBytes = await mergedPdf.save();
-                        const blob = new Blob([mergedBytes], { type: 'application/pdf' });
-
-                        const suffix = scannedEffect.value ? '-scanned' : '';
-                        const outputName = slugify(
-                            `combined-${getBaseName(rectoFile.value.name)}-${getBaseName(versoFile.value.name)}${suffix}`
-                        ) + '.pdf';
-
-                        const link = document.createElement('a');
-                        link.href = URL.createObjectURL(blob);
-                        link.download = outputName;
-                        link.click();
-                        URL.revokeObjectURL(link.href);
-
-                        const sizeKB = Math.round(mergedBytes.length / 1024);
-                        statusMessage.value = `Downloaded "${outputName}" (${sizeKB} KB, ${mergedPdf.getPageCount()} pages)`;
-                        statusType.value = 'success';
-
-                    } catch (err) {
-                        statusMessage.value = `Error: ${err.message}`;
-                        statusType.value = 'error';
-                    } finally {
-                        processing.value = false;
                     }
+
+                    const bytes = await merged.save();
+                    const suffix = scannedEffect.value ? '-scanned' : '';
+                    const name = pdfUtils.slugify(`combined-${pdfUtils.baseName(files.recto.name)}-${pdfUtils.baseName(files.verso.name)}${suffix}`) + '.pdf';
+                    const sizeKB = pdfUtils.download(bytes, name);
+                    setStatus(`Downloaded "${name}" (${sizeKB} KB, ${merged.getPageCount()} pages)`);
                 }
 
                 async function applyScannedToPdf() {
-                    if (!singleFile.value) return;
+                    statusMessage.value = 'Reading PDF...';
+                    const fileBytes = await files.single.arrayBuffer();
+                    const sourcePdf = await PDFDocument.load(fileBytes);
+                    const count = sourcePdf.getPageCount();
+                    const output = await PDFDocument.create();
 
-                    try {
-                        processing.value = true;
-                        statusMessage.value = 'Reading PDF...';
-
-                        const fileBytes = await singleFile.value.arrayBuffer();
-                        const sourcePdf = await PDFDocument.load(fileBytes);
-                        const pageCount = sourcePdf.getPageCount();
-
-                        statusMessage.value = `Processing ${pageCount} pages...`;
-
-                        const outputPdf = await PDFDocument.create();
-
-                        for (let i = 0; i < pageCount; i++) {
-                            statusMessage.value = `Processing ${i + 1}/${pageCount}...`;
-
-                            const pageImg = await renderPageToImage(fileBytes, i, true);
-                            const pageJpg = await outputPdf.embedJpg(pageImg);
-                            const page = outputPdf.addPage([pageJpg.width / 2, pageJpg.height / 2]);
-                            page.drawImage(pageJpg, {
-                                x: 0, y: 0,
-                                width: pageJpg.width / 2,
-                                height: pageJpg.height / 2
-                            });
-                        }
-
-                        const outputBytes = await outputPdf.save();
-                        const blob = new Blob([outputBytes], { type: 'application/pdf' });
-
-                        const outputName = slugify(
-                            `${getBaseName(singleFile.value.name)}-scanned`
-                        ) + '.pdf';
-
-                        const link = document.createElement('a');
-                        link.href = URL.createObjectURL(blob);
-                        link.download = outputName;
-                        link.click();
-                        URL.revokeObjectURL(link.href);
-
-                        const sizeKB = Math.round(outputBytes.length / 1024);
-                        statusMessage.value = `Downloaded "${outputName}" (${sizeKB} KB, ${pageCount} pages)`;
-                        statusType.value = 'success';
-
-                    } catch (err) {
-                        statusMessage.value = `Error: ${err.message}`;
-                        statusType.value = 'error';
-                    } finally {
-                        processing.value = false;
+                    for (let i = 0; i < count; i++) {
+                        statusMessage.value = `Processing ${i + 1}/${count}...`;
+                        await pdfUtils.embedImagePage(output, await pdfUtils.renderPageToImage(fileBytes, i, true));
                     }
+
+                    const bytes = await output.save();
+                    const name = pdfUtils.slugify(`${pdfUtils.baseName(files.single.name)}-scanned`) + '.pdf';
+                    const sizeKB = pdfUtils.download(bytes, name);
+                    setStatus(`Downloaded "${name}" (${sizeKB} KB, ${count} pages)`);
                 }
 
                 return {
-                    mode,
-                    rectoFile,
-                    versoFile,
-                    singleFile,
-                    processing,
-                    statusMessage,
-                    statusType,
-                    dragOver,
-                    canMerge,
-                    scannedEffect,
-                    theme,
-                    toggleTheme,
-                    handleFileSelect,
-                    handleDrop,
-                    mergePdfs,
-                    applyScannedToPdf
+                    mode, files, processing, statusMessage, statusType, scannedEffect, theme,
+                    tabs, currentTab, canProcess,
+                    toggleTheme, process
                 };
             }
         }).mount('#app');
