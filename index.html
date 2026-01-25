@@ -319,25 +319,36 @@
                     const rectoPdf = await PDFDocument.load(rectoBytes);
                     const versoPdf = await PDFDocument.load(versoBytes);
 
-                    if (rectoPdf.getPageCount() !== versoPdf.getPageCount()) {
-                        setStatus(`Page count mismatch: ${rectoPdf.getPageCount()} vs ${versoPdf.getPageCount()}`, 'error');
-                        return;
-                    }
-
-                    const count = rectoPdf.getPageCount();
+                    const rectoCount = rectoPdf.getPageCount();
+                    const versoCount = versoPdf.getPageCount();
+                    const maxCount = Math.max(rectoCount, versoCount);
+                    const totalPages = rectoCount + versoCount;
                     const merged = await PDFDocument.create();
 
-                    for (let i = 0; i < count; i++) {
-                        statusMessage.value = `Processing ${i * 2 + 1}/${count * 2}...`;
+                    let processed = 0;
+                    for (let i = 0; i < maxCount; i++) {
+                        const hasRecto = i < rectoCount;
+                        const versoIndex = versoCount - 1 - i;
+                        const hasVerso = versoIndex >= 0;
 
-                        if (scannedEffect.value) {
-                            await pdfUtils.embedImagePage(merged, await pdfUtils.renderPageToImage(rectoBytes, i, true));
-                            await pdfUtils.embedImagePage(merged, await pdfUtils.renderPageToImage(versoBytes, count - 1 - i, true));
-                        } else {
-                            const [rp] = await merged.copyPages(rectoPdf, [i]);
-                            const [vp] = await merged.copyPages(versoPdf, [count - 1 - i]);
-                            merged.addPage(rp);
-                            merged.addPage(vp);
+                        if (hasRecto) {
+                            statusMessage.value = `Processing ${++processed}/${totalPages}...`;
+                            if (scannedEffect.value) {
+                                await pdfUtils.embedImagePage(merged, await pdfUtils.renderPageToImage(rectoBytes, i, true));
+                            } else {
+                                const [rp] = await merged.copyPages(rectoPdf, [i]);
+                                merged.addPage(rp);
+                            }
+                        }
+
+                        if (hasVerso) {
+                            statusMessage.value = `Processing ${++processed}/${totalPages}...`;
+                            if (scannedEffect.value) {
+                                await pdfUtils.embedImagePage(merged, await pdfUtils.renderPageToImage(versoBytes, versoIndex, true));
+                            } else {
+                                const [vp] = await merged.copyPages(versoPdf, [versoIndex]);
+                                merged.addPage(vp);
+                            }
                         }
                     }
 
